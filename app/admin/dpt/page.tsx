@@ -1,73 +1,54 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Papa from "papaparse";
 
-export default function KelolaDPT() {
-  const router = useRouter();
-
-  const [nim, setNim] = useState("");
-  const [nama, setNama] = useState("");
-  const [password, setPassword] =
-    useState("");
-
+export default function DPTPage() {
   const [voters, setVoters] =
     useState<any[]>([]);
 
+  const [nim, setNim] =
+    useState("");
+
+  const [nama, setNama] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
   const [loading, setLoading] =
-    useState(true);
+    useState(false);
 
   useEffect(() => {
-    cekAdmin();
+    ambilVoters();
   }, []);
 
-  async function cekAdmin() {
-    const admin =
-      localStorage.getItem(
-        "adminLogin"
-      );
-
-    if (!admin) {
-      router.push(
-        "/admin/login"
-      );
-      return;
-    }
-
-    await ambilPemilih();
-
-    setLoading(false);
-  }
-
-  async function ambilPemilih() {
-    const { data, error } =
+  async function ambilVoters() {
+    const { data } =
       await supabase
         .from("voters")
         .select("*")
-        .order("id", {
-          ascending: false,
+        .order("nim", {
+          ascending: true,
         });
-
-    if (error) {
-      console.log(error);
-      return;
-    }
 
     setVoters(data || []);
   }
 
-  async function simpanPemilih() {
+  async function tambahPemilih() {
     if (
       !nim ||
       !nama ||
       !password
     ) {
       alert(
-        "Lengkapi data terlebih dahulu"
+        "Lengkapi semua data!"
       );
       return;
     }
+
+    setLoading(true);
 
     const { error } =
       await supabase
@@ -77,25 +58,27 @@ export default function KelolaDPT() {
             nim,
             nama,
             password,
-            sudah_memilih: false,
+            sudah_memilih:
+              false,
           },
         ]);
 
+    setLoading(false);
+
     if (error) {
-      console.log(error);
       alert(error.message);
       return;
     }
 
     alert(
-      "Pemilih berhasil ditambahkan"
+      "Pemilih berhasil ditambahkan!"
     );
 
     setNim("");
     setNama("");
     setPassword("");
 
-    ambilPemilih();
+    ambilVoters();
   }
 
   async function hapusPemilih(
@@ -107,54 +90,96 @@ export default function KelolaDPT() {
 
     if (!yakin) return;
 
-    const { error } =
-      await supabase
-        .from("voters")
-        .delete()
-        .eq("id", id);
+    await supabase
+      .from("voters")
+      .delete()
+      .eq("id", id);
 
-    if (error) {
-      alert(
-        "Gagal menghapus data"
-      );
-      return;
-    }
-
-    ambilPemilih();
+    ambilVoters();
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex justify-center items-center">
-        <h1 className="text-2xl font-bold text-black">
-          Memuat...
-        </h1>
-      </main>
-    );
+  async function uploadCSV(
+    event: any
+  ) {
+    const file =
+      event.target.files[0];
+
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+
+      complete: async (
+        results
+      ) => {
+        const data =
+          results.data.map(
+            (
+              item: any
+            ) => ({
+              nim:
+                item.nim ||
+                item.NIM,
+              nama:
+                item.nama ||
+                item.Nama,
+              password:
+                item.password ||
+                item.Password,
+              sudah_memilih:
+                false,
+            })
+          );
+
+        const { error } =
+          await supabase
+            .from(
+              "voters"
+            )
+            .insert(data);
+
+        if (error) {
+          alert(
+            error.message
+          );
+          return;
+        }
+
+        alert(
+          "Upload CSV berhasil!"
+        );
+
+        ambilVoters();
+      },
+    });
   }
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
 
+      {/* Header */}
       <div className="mb-8">
 
-        <h1 className="text-4xl font-bold text-red-700">
+        <h1 className="text-5xl font-bold text-red-700">
           Kelola DPT
         </h1>
 
-        <p className="text-gray-600 mt-2">
-          Data Pemilih Tetap Pemira HMTS FT UNRI
+        <p className="text-gray-700 mt-2 text-lg">
+          Data Pemilih Tetap
+          Pemira HMTS FT UNRI
         </p>
 
       </div>
 
-      <div className="bg-white rounded-3xl shadow-xl p-8 mb-8">
+      {/* Form Tambah */}
+      <div className="bg-white rounded-[30px] shadow-xl p-8">
 
-        <h2 className="text-2xl font-bold text-black mb-6">
+        <h2 className="text-3xl font-bold text-black mb-6">
           Tambah Pemilih
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-5">
 
           <input
             type="text"
@@ -165,7 +190,7 @@ export default function KelolaDPT() {
                 e.target.value
               )
             }
-            className="border border-gray-300 rounded-xl p-4 text-black"
+            className="border border-gray-300 p-4 rounded-2xl bg-white text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600"
           />
 
           <input
@@ -177,7 +202,7 @@ export default function KelolaDPT() {
                 e.target.value
               )
             }
-            className="border border-gray-300 rounded-xl p-4 text-black"
+            className="border border-gray-300 p-4 rounded-2xl bg-white text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600"
           />
 
           <input
@@ -189,54 +214,80 @@ export default function KelolaDPT() {
                 e.target.value
               )
             }
-            className="border border-gray-300 rounded-xl p-4 text-black"
+            className="border border-gray-300 p-4 rounded-2xl bg-white text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600"
           />
 
         </div>
 
-        <button
-          onClick={
-            simpanPemilih
-          }
-          className="bg-red-700 hover:bg-red-800 text-white px-8 py-4 rounded-xl font-bold mt-6"
-        >
-          Tambah Pemilih
-        </button>
+        <div className="flex flex-wrap gap-4 mt-8">
+
+          <button
+            onClick={
+              tambahPemilih
+            }
+            disabled={
+              loading
+            }
+            className="bg-red-700 hover:bg-red-800 text-white px-8 py-4 rounded-2xl font-bold text-lg transition"
+          >
+            {loading
+              ? "Memproses..."
+              : "Tambah Pemilih"}
+          </button>
+
+          <label className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg cursor-pointer transition">
+
+            Upload CSV DPT
+
+            <input
+              type="file"
+              accept=".csv"
+              hidden
+              onChange={
+                uploadCSV
+              }
+            />
+          </label>
+
+        </div>
 
       </div>
 
-      <div className="bg-white rounded-3xl shadow-xl p-8 overflow-auto">
+      {/* Tabel */}
+      <div className="bg-white rounded-[30px] shadow-xl p-8 mt-10 overflow-auto">
 
-        <h2 className="text-2xl font-bold text-black mb-6">
+        <h2 className="text-3xl font-bold text-black mb-6">
           Daftar Pemilih
         </h2>
 
-        <table className="w-full">
+        <table className="w-full border-collapse">
 
           <thead>
+
             <tr className="bg-red-700 text-white">
 
-              <th className="p-4">
+              <th className="p-5 text-center">
                 NIM
               </th>
 
-              <th className="p-4">
+              <th className="p-5 text-center">
                 Nama
               </th>
 
-              <th className="p-4">
+              <th className="p-5 text-center">
                 Password
               </th>
 
-              <th className="p-4">
+              <th className="p-5 text-center">
                 Status
               </th>
 
-              <th className="p-4">
+              <th className="p-5 text-center">
                 Aksi
               </th>
 
             </tr>
+
           </thead>
 
           <tbody>
@@ -244,31 +295,43 @@ export default function KelolaDPT() {
             {voters.map(
               (item) => (
                 <tr
-                  key={item.id}
-                  className="border-b"
+                  key={
+                    item.id
+                  }
+                  className="border-b border-gray-200 hover:bg-gray-50 transition"
                 >
 
-                  <td className="p-4 text-black">
+                  <td className="p-5 text-black font-medium text-center">
                     {item.nim}
                   </td>
 
-                  <td className="p-4 text-black">
+                  <td className="p-5 text-black font-medium text-center">
                     {item.nama}
                   </td>
 
-                  <td className="p-4 text-black">
-                    {item.password}
+                  <td className="p-5 text-black font-medium text-center">
+                    {
+                      item.password
+                    }
                   </td>
 
-                  <td className="p-4 text-black">
+                  <td className="p-5 text-center">
 
-                    {item.sudah_memilih
-                      ? "Sudah Memilih"
-                      : "Belum Memilih"}
+                    <span
+                      className={`font-bold ${
+                        item.sudah_memilih
+                          ? "text-green-600"
+                          : "text-orange-500"
+                      }`}
+                    >
+                      {item.sudah_memilih
+                        ? "Sudah Memilih"
+                        : "Belum Memilih"}
+                    </span>
 
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-5 text-center">
 
                     <button
                       onClick={() =>
@@ -276,7 +339,7 @@ export default function KelolaDPT() {
                           item.id
                         )
                       }
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+                      className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl font-semibold transition"
                     >
                       Hapus
                     </button>
