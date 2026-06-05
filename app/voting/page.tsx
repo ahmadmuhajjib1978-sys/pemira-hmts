@@ -163,7 +163,7 @@ export default function VotingPage() {
         </h1>
 
         <p className="text-gray-600 mt-3 text-sm md:text-lg px-2">
-          Silakan pilih pasangan calon Ketua dan Wakil Ketua
+          Silakan pilih pasangan calon Bupati dan Wakil Bupati
           Himpunan Mahasiswa Teknik Sipil
           Fakultas Teknik Universitas Riau
         </p>
@@ -209,7 +209,7 @@ export default function VotingPage() {
                 </h2>
 
                 <p className="text-center text-gray-500 text-lg mb-2">
-                  Calon Ketua
+                  Calon Bupati
                 </p>
 
                 <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-800 mt-4">
@@ -219,7 +219,7 @@ export default function VotingPage() {
                 </h2>
 
                 <p className="text-center text-gray-500 text-lg mb-6">
-                  Calon Wakil Ketua
+                  Calon Wakil Bupati
                 </p>
 
                 {/* Visi */}
