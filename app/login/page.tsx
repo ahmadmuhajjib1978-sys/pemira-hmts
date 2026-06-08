@@ -16,7 +16,7 @@ export default function LoginPage() {
   async function login() {
     setLoading(true);
 
-    // Ambil setting voting
+    // CEK WAKTU VOTING
     const {
       data: setting,
       error: settingError,
@@ -30,7 +30,7 @@ export default function LoginPage() {
       !setting
     ) {
       alert(
-        "Pengaturan voting belum tersedia"
+        "Pengaturan voting belum tersedia."
       );
 
       setLoading(false);
@@ -50,7 +50,7 @@ export default function LoginPage() {
         setting.selesai
       );
 
-    // Belum mulai
+    // BELUM MULAI
     if (sekarang < mulai) {
       alert(
         "Voting belum dimulai."
@@ -60,7 +60,7 @@ export default function LoginPage() {
       return;
     }
 
-    // Sudah selesai
+    // SUDAH DITUTUP
     if (
       sekarang > selesai
     ) {
@@ -72,9 +72,9 @@ export default function LoginPage() {
       return;
     }
 
-    // Login voter
+    // LOGIN DARI SUPABASE
     const {
-      data,
+      data: user,
       error,
     } = await supabase
       .from("voters")
@@ -86,21 +86,34 @@ export default function LoginPage() {
       )
       .single();
 
+    // LOGIN GAGAL
     if (
       error ||
-      !data
+      !user
     ) {
       alert(
-        "NIM atau Password salah"
+        "NIM atau Password salah!"
       );
 
       setLoading(false);
       return;
     }
 
-    // Anti double vote
+    // DIBLOKIR
     if (
-      data.sudah_memilih
+      user.diblokir
+    ) {
+      alert(
+        "Akun pemilih sedang diblokir administrator."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    // SUDAH MEMILIH
+    if (
+      user.sudah_memilih
     ) {
       alert(
         "Anda sudah menggunakan hak suara."
@@ -110,9 +123,15 @@ export default function LoginPage() {
       return;
     }
 
+    // SIMPAN SESSION
     localStorage.setItem(
       "nim",
-      data.nim
+      user.nim
+    );
+
+    localStorage.setItem(
+      "namaPemilih",
+      user.nama
     );
 
     alert(
@@ -149,7 +168,7 @@ export default function LoginPage() {
               e.target.value
             )
           }
-          className="w-full border border-gray-300 rounded-2xl p-4 mb-5 focus:outline-none focus:ring-2 focus:ring-red-700 text-black"
+          className="w-full border border-gray-300 rounded-2xl p-4 mb-5 text-black"
         />
 
         <label className="block mb-2 font-medium text-black">
@@ -165,13 +184,13 @@ export default function LoginPage() {
               e.target.value
             )
           }
-          className="w-full border border-gray-300 rounded-2xl p-4 mb-8 focus:outline-none focus:ring-2 focus:ring-red-700 text-black"
+          className="w-full border border-gray-300 rounded-2xl p-4 mb-8 text-black"
         />
 
         <button
           onClick={login}
           disabled={loading}
-          className="w-full bg-red-700 hover:bg-red-800 active:scale-95 text-white py-4 rounded-2xl text-lg font-bold transition"
+          className="w-full bg-red-700 hover:bg-red-800 text-white py-4 rounded-2xl text-lg font-bold"
         >
           {loading
             ? "Memproses..."

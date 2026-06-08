@@ -2,109 +2,143 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-export default function AdminLoginPage() {
+export default function LoginAdminPage() {
   const router =
     useRouter();
 
-  const [
-    username,
-    setUsername,
-  ] = useState("");
+  const [username,
+    setUsername] =
+    useState("");
 
-  const [
-    password,
-    setPassword,
-  ] = useState("");
+  const [password,
+    setPassword] =
+    useState("");
 
-  function handleLogin() {
+  const [loading,
+    setLoading] =
+    useState(false);
+
+  async function loginAdmin() {
+    setLoading(true);
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("admins")
+      .select("*")
+      .eq(
+        "username",
+        username
+      )
+      .eq(
+        "password",
+        password
+      )
+      .single();
+
     if (
-      username ===
-        "admin" &&
-      password ===
-        "admin123"
+      error ||
+      !data
     ) {
-      localStorage.setItem(
-        "adminLogin",
-        "true"
+      alert(
+        "Username atau password salah"
       );
 
-      router.push(
-        "/admin/dashboard"
-      );
-    } else {
-      alert(
-        "Username atau password admin salah"
-      );
+      setLoading(false);
+      return;
     }
+
+    // simpan session
+    localStorage.setItem(
+      "adminLogin",
+      "true"
+    );
+
+    localStorage.setItem(
+      "adminNama",
+      data.nama
+    );
+
+    localStorage.setItem(
+      "adminUsername",
+      data.username
+    );
+
+    alert(
+      "Login berhasil"
+    );
+
+    router.push(
+      "/admin/dashboard"
+    );
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-gray-100 flex justify-center items-center px-4">
 
-      <div className="bg-white rounded-[30px] shadow-2xl p-10 w-full max-w-lg">
+      <div className="bg-white p-10 rounded-[35px] shadow-2xl w-full max-w-lg">
 
-        <h1 className="text-4xl font-bold text-center text-red-700">
+        <h1 className="text-5xl font-bold text-center text-red-700">
           Login Admin
         </h1>
 
-        <p className="text-center text-gray-600 mt-2">
+        <p className="text-center text-gray-500 mt-3 mb-8">
           PEMIRA HMTS FT UNRI
         </p>
 
-        <div className="mt-8">
+        <label className="block text-black font-semibold mb-2">
+          Username
+        </label>
 
-          <label className="font-semibold text-black">
-            Username
-          </label>
+        <input
+          type="text"
+          value={
+            username
+          }
+          onChange={(e) =>
+            setUsername(
+              e.target
+                .value
+            )
+          }
+          placeholder="Masukkan Username"
+          className="w-full border rounded-2xl p-4 text-black mb-5"
+        />
 
-          <input
-            type="text"
-            value={
-              username
-            }
-            onChange={(e) =>
-              setUsername(
-                e.target
-                  .value
-              )
-            }
-            className="w-full border border-gray-300 p-4 rounded-2xl mt-2 text-black"
-            placeholder="Masukkan Username"
-          />
+        <label className="block text-black font-semibold mb-2">
+          Password
+        </label>
 
-        </div>
-
-        <div className="mt-6">
-
-          <label className="font-semibold text-black">
-            Password
-          </label>
-
-          <input
-            type="password"
-            value={
-              password
-            }
-            onChange={(e) =>
-              setPassword(
-                e.target
-                  .value
-              )
-            }
-            className="w-full border border-gray-300 p-4 rounded-2xl mt-2 text-black"
-            placeholder="Masukkan Password"
-          />
-
-        </div>
+        <input
+          type="password"
+          value={
+            password
+          }
+          onChange={(e) =>
+            setPassword(
+              e.target
+                .value
+            )
+          }
+          placeholder="Masukkan Password"
+          className="w-full border rounded-2xl p-4 text-black mb-8"
+        />
 
         <button
           onClick={
-            handleLogin
+            loginAdmin
           }
-          className="w-full bg-red-700 hover:bg-red-800 text-white py-4 rounded-2xl font-bold text-lg mt-8"
+          disabled={
+            loading
+          }
+          className="w-full bg-red-700 hover:bg-red-800 text-white py-4 rounded-2xl text-xl font-bold"
         >
-          Masuk Admin
+          {loading
+            ? "Memproses..."
+            : "Masuk Admin"}
         </button>
 
       </div>

@@ -1,334 +1,187 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 
-export default function KelolaPaslon() {
-  const router = useRouter();
+type Admin = {
+  id: number;
+  nama: string;
+  nim: string;
+  username: string;
+  password: string;
+  ktm: string;
+};
 
-  const [nomorUrut, setNomorUrut] =
+export default function LoginAdminPage() {
+  const router =
+    useRouter();
+
+  const [username,
+    setUsername] =
     useState("");
 
-  const [ketua, setKetua] =
+  const [password,
+    setPassword] =
     useState("");
 
-  const [wakil, setWakil] =
-    useState("");
+  const [loading,
+    setLoading] =
+    useState(false);
 
-  const [visi, setVisi] =
-    useState("");
+  function loginAdmin() {
+    setLoading(true);
 
-  const [misi, setMisi] =
-    useState("");
-
-  const [foto, setFoto] =
-    useState<File | null>(null);
-
-  const [preview, setPreview] =
-    useState("");
-
-  const [candidates, setCandidates] =
-    useState<any[]>([]);
-
-  useEffect(() => {
-    const admin =
+    // cek data admin
+    let adminData =
       localStorage.getItem(
-        "adminLogin"
+        "adminData"
+      );
+
+    // kalau kosong buat admin utama
+    if (!adminData) {
+      const defaultAdmin =
+        [
+          {
+            id: 1,
+            nama:
+              "Administrator Utama",
+            nim:
+              "25071101978",
+            username:
+              "admin",
+            password:
+              "admin123",
+            ktm: "",
+          },
+        ];
+
+      localStorage.setItem(
+        "adminData",
+        JSON.stringify(
+          defaultAdmin
+        )
+      );
+
+      adminData =
+        JSON.stringify(
+          defaultAdmin
+        );
+    }
+
+    const admins:
+      Admin[] =
+      JSON.parse(
+        adminData
+      );
+
+    const admin =
+      admins.find(
+        (item) =>
+          item.username
+            .trim() ===
+            username.trim() &&
+          item.password ===
+            password
       );
 
     if (!admin) {
-      router.push(
-        "/admin/login"
-      );
-      return;
-    }
-
-    ambilPaslon();
-  }, []);
-
-  async function ambilPaslon() {
-    const { data, error } =
-      await supabase
-        .from("candidates")
-        .select("*")
-        .order("nomor_urut", {
-          ascending: true,
-        });
-
-    if (error) {
-      console.log(error);
-      return;
-    }
-
-    setCandidates(data || []);
-  }
-
-  async function simpanPaslon() {
-    if (
-      !nomorUrut ||
-      !ketua ||
-      !wakil ||
-      !visi ||
-      !misi ||
-      !foto
-    ) {
       alert(
-        "Lengkapi semua data"
+        "Username atau password admin salah"
       );
+
+      setLoading(false);
       return;
     }
 
-    const namaFile =
-      `${Date.now()}-${foto.name}`;
+    // simpan session
+    localStorage.setItem(
+      "adminLogin",
+      "true"
+    );
 
-    const { error: uploadError } =
-      await supabase.storage
-        .from("paslon")
-        .upload(
-          namaFile,
-          foto
-        );
+    localStorage.setItem(
+      "adminNama",
+      admin.nama
+    );
 
-    if (uploadError) {
-      alert(
-        "Upload foto gagal"
-      );
-      return;
-    }
-
-    const {
-      data: publicUrlData,
-    } = supabase.storage
-      .from("paslon")
-      .getPublicUrl(
-        namaFile
-      );
-
-    const fotoUrl =
-      publicUrlData.publicUrl;
-
-    const { error } =
-      await supabase
-        .from("candidates")
-        .insert([
-          {
-            nomor_urut:
-              nomorUrut,
-            ketua,
-            wakil,
-            visi,
-            misi,
-            foto_url:
-              fotoUrl,
-          },
-        ]);
-
-    if (error) {
-      alert(
-        "Gagal simpan paslon"
-      );
-      return;
-    }
+    localStorage.setItem(
+      "adminUsername",
+      admin.username
+    );
 
     alert(
-      "Paslon berhasil ditambahkan"
+      "Login berhasil"
     );
 
-    setNomorUrut("");
-    setKetua("");
-    setWakil("");
-    setVisi("");
-    setMisi("");
-    setFoto(null);
-    setPreview("");
-
-    ambilPaslon();
-  }
-
-  async function hapusPaslon(
-    id: number
-  ) {
-    const yakin = confirm(
-      "Hapus paslon ini?"
+    router.push(
+      "/admin/dashboard"
     );
-
-    if (!yakin) return;
-
-    await supabase
-      .from("candidates")
-      .delete()
-      .eq("id", id);
-
-    ambilPaslon();
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8">
+    <main className="min-h-screen bg-gray-100 flex justify-center items-center px-4">
 
-      <h1 className="text-4xl font-bold text-red-700 mb-8">
-        Kelola Paslon
-      </h1>
+      <div className="bg-white p-10 rounded-[35px] shadow-2xl w-full max-w-lg">
 
-      <div className="bg-white p-8 rounded-3xl shadow-xl mb-8">
+        <h1 className="text-5xl font-bold text-center text-red-700">
+          Login Admin
+        </h1>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <p className="text-center text-gray-500 mt-3 mb-8">
+          PEMIRA HMTS FT UNRI
+        </p>
 
-          <input
-            type="number"
-            placeholder="Nomor Urut"
-            value={nomorUrut}
-            onChange={(e) =>
-              setNomorUrut(
-                e.target.value
-              )
-            }
-            className="border rounded-xl p-4 text-black"
-          />
+        <label className="block text-black font-semibold mb-2">
+          Username
+        </label>
 
-          <input
-            type="text"
-            placeholder="Nama Ketua"
-            value={ketua}
-            onChange={(e) =>
-              setKetua(
-                e.target.value
-              )
-            }
-            className="border rounded-xl p-4 text-black"
-          />
-
-          <input
-            type="text"
-            placeholder="Nama Wakil"
-            value={wakil}
-            onChange={(e) =>
-              setWakil(
-                e.target.value
-              )
-            }
-            className="border rounded-xl p-4 text-black"
-          />
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file =
-                e.target.files?.[0];
-
-              if (file) {
-                setFoto(file);
-
-                setPreview(
-                  URL.createObjectURL(
-                    file
-                  )
-                );
-              }
-            }}
-            className="border rounded-xl p-4 text-black"
-          />
-
-        </div>
-
-        {preview && (
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-64 rounded-xl mt-6 border"
-          />
-        )}
-
-        <textarea
-          placeholder="Visi"
-          value={visi}
+        <input
+          type="text"
+          value={
+            username
+          }
           onChange={(e) =>
-            setVisi(
-              e.target.value
+            setUsername(
+              e.target
+                .value
             )
           }
-          className="w-full border rounded-xl p-4 mt-4 text-black"
-          rows={4}
+          placeholder="Masukkan Username"
+          className="w-full border rounded-2xl p-4 text-black mb-5"
         />
 
-        <textarea
-          placeholder="Misi"
-          value={misi}
+        <label className="block text-black font-semibold mb-2">
+          Password
+        </label>
+
+        <input
+          type="password"
+          value={
+            password
+          }
           onChange={(e) =>
-            setMisi(
-              e.target.value
+            setPassword(
+              e.target
+                .value
             )
           }
-          className="w-full border rounded-xl p-4 mt-4 text-black"
-          rows={5}
+          placeholder="Masukkan Password"
+          className="w-full border rounded-2xl p-4 text-black mb-8"
         />
 
         <button
           onClick={
-            simpanPaslon
+            loginAdmin
           }
-          className="bg-red-700 text-white px-8 py-4 rounded-xl font-bold mt-6"
+          disabled={
+            loading
+          }
+          className="w-full bg-red-700 hover:bg-red-800 text-white py-4 rounded-2xl text-xl font-bold"
         >
-          Simpan Paslon
+          {loading
+            ? "Memproses..."
+            : "Masuk Admin"}
         </button>
-
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-
-        {candidates.map(
-          (item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-3xl shadow-xl overflow-hidden"
-            >
-
-              <img
-                src={
-                  item.foto_url
-                }
-                alt="Paslon"
-                className="w-full h-72 object-cover"
-              />
-
-              <div className="p-6">
-
-                <h2 className="text-2xl font-bold text-red-700">
-                  Paslon{" "}
-                  {
-                    item.nomor_urut
-                  }
-                </h2>
-
-                <p className="text-black mt-3">
-                  Ketua:
-                  {" "}
-                  {item.ketua}
-                </p>
-
-                <p className="text-black">
-                  Wakil:
-                  {" "}
-                  {item.wakil}
-                </p>
-
-                <button
-                  onClick={() =>
-                    hapusPaslon(
-                      item.id
-                    )
-                  }
-                  className="bg-red-600 text-white px-5 py-3 rounded-xl mt-5"
-                >
-                  Hapus
-                </button>
-
-              </div>
-
-            </div>
-          )
-        )}
 
       </div>
 

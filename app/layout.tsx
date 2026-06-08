@@ -1,23 +1,16 @@
 import "./globals.css";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title:
-    "PEMIRA HMTS FT UNRI 2026/2027",
-
+export const metadata = {
+  title: "PEMIRA HMTS FT UNRI",
   description:
-    "Website Pemilihan Raya Himpunan Mahasiswa Teknik Sipil Fakultas Teknik Universitas Riau",
-
-  icons: {
-    icon: "/favicon.png",
-  },
+    "Website E-Voting PEMIRA HMTS FT UNRI",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="id">
       <body>

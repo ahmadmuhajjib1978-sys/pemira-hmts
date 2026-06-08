@@ -3,9 +3,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+type Candidate = {
+  id: number;
+  nomor_urut: number;
+  ketua: string;
+  wakil: string;
+  visi: string;
+  misi: string;
+  foto_url: string;
+};
+
 export default function VotingPage() {
   const [candidates, setCandidates] =
-    useState<any[]>([]);
+    useState<Candidate[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -13,25 +23,134 @@ export default function VotingPage() {
   const [submitting, setSubmitting] =
     useState(false);
 
+  const [namaPemilih, setNamaPemilih] =
+    useState("");
+
   useEffect(() => {
+    cekLogin();
     ambilPaslon();
+    ambilNamaPemilih();
   }, []);
+
+  async function cekLogin() {
+    const nim =
+      localStorage.getItem(
+        "nim"
+      );
+
+    if (!nim) {
+      alert(
+        "Silakan login terlebih dahulu."
+      );
+
+      window.location.href =
+        "/login";
+
+      return;
+    }
+
+    const {
+      data: voter,
+    } = await supabase
+      .from("voters")
+      .select("*")
+      .eq("nim", nim)
+      .single();
+
+    if (!voter) {
+      alert(
+        "Data pemilih tidak ditemukan."
+      );
+
+      localStorage.removeItem(
+        "nim"
+      );
+
+      window.location.href =
+        "/login";
+
+      return;
+    }
+
+    // Cek blokir
+    if (
+      voter.diblokir
+    ) {
+      alert(
+        "Akun Anda sedang diblokir administrator."
+      );
+
+      localStorage.removeItem(
+        "nim"
+      );
+
+      window.location.href =
+        "/login";
+
+      return;
+    }
+
+    // Sudah memilih
+    if (
+      voter.sudah_memilih
+    ) {
+      alert(
+        "Anda sudah menggunakan hak suara."
+      );
+
+      window.location.href =
+        "/terimakasih";
+    }
+  }
+
+  async function ambilNamaPemilih() {
+    const nim =
+      localStorage.getItem(
+        "nim"
+      );
+
+    if (!nim) return;
+
+    const { data } =
+      await supabase
+        .from("voters")
+        .select("nama")
+        .eq("nim", nim)
+        .single();
+
+    if (data) {
+      setNamaPemilih(
+        data.nama
+      );
+    }
+  }
 
   async function ambilPaslon() {
     const { data, error } =
       await supabase
         .from("candidates")
         .select("*")
-        .order("nomor_urut", {
-          ascending: true,
-        });
+        .order(
+          "nomor_urut",
+          {
+            ascending: true,
+          }
+        );
 
     if (error) {
       console.log(error);
+
+      alert(
+        "Gagal memuat pasangan calon."
+      );
+
       return;
     }
 
-    setCandidates(data || []);
+    setCandidates(
+      data || []
+    );
+
     setLoading(false);
   }
 
@@ -53,10 +172,8 @@ export default function VotingPage() {
 
     if (!nim) {
       alert(
-        "Sesi login tidak ditemukan"
+        "Sesi login tidak ditemukan."
       );
-
-      setSubmitting(false);
 
       window.location.href =
         "/login";
@@ -64,25 +181,41 @@ export default function VotingPage() {
       return;
     }
 
-    // cek voter
+    // Ambil data voter
     const {
       data: voter,
+      error: voterError,
     } = await supabase
       .from("voters")
       .select("*")
       .eq("nim", nim)
       .single();
 
-    if (!voter) {
+    if (
+      voterError ||
+      !voter
+    ) {
       alert(
-        "Data pemilih tidak ditemukan"
+        "Data pemilih tidak ditemukan."
       );
 
       setSubmitting(false);
       return;
     }
 
-    // anti double vote
+    // Blokir
+    if (
+      voter.diblokir
+    ) {
+      alert(
+        "Akun Anda sedang diblokir administrator."
+      );
+
+      setSubmitting(false);
+      return;
+    }
+
+    // Anti double vote
     if (
       voter.sudah_memilih
     ) {
@@ -96,9 +229,11 @@ export default function VotingPage() {
       return;
     }
 
-    // simpan vote
-    const { error } =
-      await supabase
+    try {
+      // Simpan suara
+      const {
+        error: voteError,
+      } = await supabase
         .from("votes")
         .insert([
           {
@@ -109,44 +244,61 @@ export default function VotingPage() {
           },
         ]);
 
-    if (error) {
-      console.log(error);
-      alert(
-        error.message
+      if (voteError) {
+        console.log(
+          voteError
+        );
+
+        alert(
+          "Gagal menyimpan suara."
+        );
+
+        setSubmitting(
+          false
+        );
+
+        return;
+      }
+
+      // Update status voter
+      await supabase
+        .from("voters")
+        .update({
+          sudah_memilih:
+            true,
+        })
+        .eq("nim", nim);
+
+      // Hapus session login
+      localStorage.removeItem(
+        "nim"
       );
 
-      setSubmitting(false);
-      return;
+      alert(
+        "Voting berhasil!"
+      );
+
+      window.location.href =
+        "/terimakasih";
+    } catch (err) {
+      console.log(err);
+
+      alert(
+        "Terjadi kesalahan."
+      );
+
+      setSubmitting(
+        false
+      );
     }
-
-    // update voter
-    await supabase
-      .from("voters")
-      .update({
-        sudah_memilih:
-          true,
-      })
-      .eq("nim", nim);
-
-    // hapus session
-    localStorage.removeItem(
-      "nim"
-    );
-
-    alert(
-      "Voting berhasil!"
-    );
-
-    // redirect halaman terimakasih
-    window.location.href =
-      "/terimakasih";
   }
 
   if (loading) {
     return (
       <main className="min-h-screen flex justify-center items-center bg-gray-100">
         <h1 className="text-2xl font-bold text-black">
-          Memuat Pasangan Calon...
+          Memuat Pasangan
+          Calon...
         </h1>
       </main>
     );
@@ -156,16 +308,37 @@ export default function VotingPage() {
     <main className="min-h-screen bg-gray-100 px-4 md:px-8 py-8">
 
       {/* Header */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
 
         <h1 className="text-3xl md:text-5xl font-bold text-red-800">
           PEMILIHAN RAYA HMTS FT UNRI
         </h1>
 
-        <p className="text-gray-600 mt-3 text-sm md:text-lg px-2">
-          Silakan pilih pasangan calon Bupati dan Wakil Bupati
+        <p className="text-gray-600 mt-3 text-sm md:text-lg">
+          Silakan pilih pasangan calon
+          Bupati dan Wakil Bupati
           Himpunan Mahasiswa Teknik Sipil
           Fakultas Teknik Universitas Riau
+        </p>
+
+      </div>
+
+      {/* Sapaan */}
+      <div className="bg-white rounded-[25px] shadow-lg p-6 mb-8 border border-gray-200 text-center">
+
+        <h2 className="text-2xl md:text-3xl font-bold text-red-700">
+          Selamat Datang,{" "}
+          {namaPemilih}
+          👋
+        </h2>
+
+        <p className="text-gray-600 mt-2 text-sm md:text-lg">
+          Silakan gunakan hak suara
+          Anda dengan bijak pada
+          Pemilihan Raya Himpunan
+          Mahasiswa Teknik Sipil
+          Fakultas Teknik Universitas
+          Riau.
         </p>
 
       </div>
@@ -180,7 +353,6 @@ export default function VotingPage() {
               className="bg-white rounded-[30px] shadow-2xl overflow-hidden border border-gray-200"
             >
 
-              {/* Foto */}
               <div className="relative">
 
                 <img
@@ -199,7 +371,6 @@ export default function VotingPage() {
 
               </div>
 
-              {/* Content */}
               <div className="p-5 md:p-8">
 
                 <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-800">
@@ -219,10 +390,10 @@ export default function VotingPage() {
                 </h2>
 
                 <p className="text-center text-gray-500 text-lg mb-6">
-                  Calon Wakil Bupati
+                  Calon Wakil
+                  Bupati
                 </p>
 
-                {/* Visi */}
                 <div className="bg-gray-100 rounded-2xl p-5 mb-5">
 
                   <h3 className="font-bold text-red-700 text-lg mb-2">
@@ -230,12 +401,13 @@ export default function VotingPage() {
                   </h3>
 
                   <p className="text-gray-700 leading-relaxed text-sm md:text-base">
-                    {item.visi}
+                    {
+                      item.visi
+                    }
                   </p>
 
                 </div>
 
-                {/* Misi */}
                 <div className="bg-gray-100 rounded-2xl p-5 mb-8">
 
                   <h3 className="font-bold text-red-700 text-lg mb-2">
@@ -243,12 +415,13 @@ export default function VotingPage() {
                   </h3>
 
                   <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm md:text-base">
-                    {item.misi}
+                    {
+                      item.misi
+                    }
                   </p>
 
                 </div>
 
-                {/* Tombol */}
                 <button
                   onClick={() =>
                     pilihPaslon(
