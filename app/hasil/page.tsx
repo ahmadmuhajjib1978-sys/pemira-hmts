@@ -178,7 +178,7 @@ export default function HasilPublicPage() {
                 </h3>
 
                 <p className="text-gray-600">
-                  Calon Ketua
+                  Calon Bupati
                 </p>
 
                 {/* Wakil */}
@@ -189,7 +189,7 @@ export default function HasilPublicPage() {
                 </h3>
 
                 <p className="text-gray-600">
-                  Calon Wakil Ketua
+                  Calon Wakil Bupati
                 </p>
 
                 {/* Suara */}
